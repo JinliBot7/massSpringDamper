@@ -14,6 +14,7 @@ const gui = new dat.GUI()
 const debugObject = {}
 const pathArray = []
 const springArray = []
+const savedArray = []
 
 const colorArray = [new THREE.Color(0x000000),new THREE.Color(0xFF0000), new THREE.Color(0x0000FF), new THREE.Color(0x008000), new THREE.Color(0xFF00FF)]
 
@@ -24,6 +25,8 @@ var initMoveFlag = true //for count start time
 var updateLineFlag = true
 var savePathFlag = false
 var updateSpringFlag = false
+
+
 
 
 /**
@@ -49,7 +52,7 @@ scene.background = new THREE.Color( 0xeeeeee)
 
 // Wall
 const wall_geometry = new THREE.BoxGeometry( 10, 3, 0.5 )
-const wall_material = new THREE.MeshBasicMaterial( { color: 0x79858d } )
+const wall_material = new THREE.MeshBasicMaterial( { color: 0x79858d     } )
 const wall_mesh = new THREE.Mesh( wall_geometry, wall_material )
 wall_mesh.position.y = 1.5
 wall_mesh.position.z = 0.25
@@ -121,6 +124,11 @@ debugObject.moveFunction = () =>
 debugObject.stopFunction = () =>
 {
     moveFlag = false
+    updateLineFlag = false
+    moveFlag = false
+    stableFlag = false
+    initMoveFlag = true
+    savePathFlag = false
 }
 
 const changeInitialPosition = (value) =>
@@ -183,12 +191,13 @@ function updateLine(points,old_line_geometry, old_line,position,time,height,colo
     scene.add( line )
     
     pathArray.push(line)
+
     
 }
 
 // Draw Spring
 const spring_material = new THREE.LineBasicMaterial({color: 0x000000,linewidth: 1})
-var spinrg_points = getSpringPointsArray(block.position,20,100,0.4)
+var spinrg_points = getSpringPointsArray(block.position,DS['spring']*20,10,0.4)
 
 var spring_geometry = new THREE.BufferGeometry().setFromPoints( spinrg_points )
 var spring_mesh = new THREE.Line( spring_geometry, spring_material )
@@ -231,13 +240,18 @@ const system_folder = gui.addFolder( 'Dynamic System')
 
 
 block_folder.add(debugObject,'position').min(-9).max(9).step(0.01).onChange(changeInitialPosition).listen()
-block_folder.add(debugObject,'velocity').listen().min(-10).max(10).step(0.01).disable()
-block_folder.add(debugObject,'acceleration').listen().min(-10).max(10).step(0.01).disable()
+block_folder.add(debugObject,'velocity').listen().min(-10).max(10).step(0.01).disable().listen()
+block_folder.add(debugObject,'acceleration').listen().min(-10).max(10).step(0.01).disable().listen()
 block_folder.add(block,'mass').min(0.01).max(10).step(0.01)
 
 
+const updatSpringFuncton = () =>
+{
+    updateSpringFlag = true
+}
 // Dynamics system folder
-system_folder.add(DS,'spring').min(0).max(10).step(0.01)
+system_folder.add(DS,'spring').min(0).max(10).step(0.01).onChange(updatSpringFuncton)
+
 system_folder.add(DS,'damp').min(0).max(10).step(0.01)
 debugObject.elapsedTime = 0
 system_folder.add(debugObject,'elapsedTime').listen().disable().name('elapsed time')
@@ -253,7 +267,7 @@ debugObject.i = 0
 debugObject.d = 0
 debugObject.mu = 0
 force_folder.add(debugObject,'p').min(0).max(10).step(0.01).name('P')
-force_folder.add(debugObject,'i').min(0).max(0.5).step(0.01).name('I')
+force_folder.add(debugObject,'i').min(0).max(1).step(0.01).name('I')
 force_folder.add(debugObject,'d').min(0).max(10).step(0.01).name('D')
 //force_folder.add(debugObject,'mu').min(0).max(0.9).step(0.01).name('\u03bc')
 debugObject.inputForceValue = 0
@@ -276,10 +290,39 @@ debugObject.savePath = () =>
     
     const this_line = pathArray[0].clone()
     scene.add( this_line )
+    savedArray.push(this_line)
     thisColorCount += 1
     savePathFlag = true
 }
 gui.add(debugObject,'savePath').name('save path')
+
+debugObject.resetAll = () =>
+{
+    
+    
+    block.position = 0
+    block.velocity = 0
+    block.acceleration = 0
+    debugObject.position = 0
+    debugObject.velocity = 0
+    debugObject.acceleration = 0
+    debugObject.elapsedTime = 0
+
+    points.splice(0,points.length)
+    scene.remove(pathArray[0])
+    console.log(savedArray)
+    for (const lines in savedArray)
+    {       
+        //console.log(lines)
+        scene.remove(savedArray[lines])
+    }
+    savedArray.splice(0,savedArray.length)
+    block_mesh.position.z = -10
+    colorPosition = 0
+    
+}
+
+gui.add(debugObject,'resetAll').name('reset')
 //#region
 /**
  * Textures
@@ -433,7 +476,7 @@ const tick = () =>
         if (initMoveFlag == true)
         {
             time_object.startMoveTime = elapsedTime
-            console.log(scene)
+            
             //clean plots
             points.splice(0,points.length)
             scene.remove(pathArray[0])
@@ -441,7 +484,7 @@ const tick = () =>
 
 
             initMoveFlag = false
-            line
+            accumulateError = 0
         }
 
 
@@ -492,12 +535,11 @@ const tick = () =>
     if (updateSpringFlag)
     {
         scene.remove(spring_mesh)
-        spinrg_points = getSpringPointsArray(-block.position,20,100,0.4)
+        spinrg_points = getSpringPointsArray(-block.position,DS['spring']*20,10,0.4)
         spring_geometry = new THREE.BufferGeometry().setFromPoints( spinrg_points )
         spring_mesh = new THREE.Line( spring_geometry, spring_material )
         scene.add(spring_mesh)
-        console.log(scene)
-
+        
     }
     
     
