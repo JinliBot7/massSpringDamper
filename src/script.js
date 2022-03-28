@@ -13,6 +13,7 @@ import Stats from 'stats.js'
 const gui = new dat.GUI()
 const debugObject = {}
 const pathArray = []
+const springArray = []
 
 const colorArray = [new THREE.Color(0x000000),new THREE.Color(0xFF0000), new THREE.Color(0x0000FF), new THREE.Color(0x008000), new THREE.Color(0xFF00FF)]
 
@@ -22,6 +23,7 @@ var stableFlag = false
 var initMoveFlag = true //for count start time
 var updateLineFlag = true
 var savePathFlag = false
+var updateSpringFlag = false
 
 
 /**
@@ -47,7 +49,7 @@ scene.background = new THREE.Color( 0xeeeeee)
 
 // Wall
 const wall_geometry = new THREE.BoxGeometry( 10, 3, 0.5 )
-const wall_material = new THREE.MeshBasicMaterial( { color: 0x000000 } )
+const wall_material = new THREE.MeshBasicMaterial( { color: 0x79858d } )
 const wall_mesh = new THREE.Mesh( wall_geometry, wall_material )
 wall_mesh.position.y = 1.5
 wall_mesh.position.z = 0.25
@@ -125,6 +127,7 @@ const changeInitialPosition = (value) =>
 {
     block_mesh.position.z = -10-value
     block.position = value
+    updateSpringFlag = true
 }
 
 const changeMoveFlag = () =>
@@ -144,7 +147,7 @@ scene.add(block_transparent_mesh)
 
 // Draw Line
 
-const line_material = new THREE.LineBasicMaterial({color: 0x0000ff})
+const line_material = new THREE.LineBasicMaterial({color: 0x0000ff,linewidth: 1})
 const points = []
 // points.push( new THREE.Vector3( - 10, 0, 0 ) );
 // points.push( new THREE.Vector3( 0, 10, 0 ) );
@@ -183,9 +186,40 @@ function updateLine(points,old_line_geometry, old_line,position,time,height,colo
     
 }
 
+// Draw Spring
+const spring_material = new THREE.LineBasicMaterial({color: 0x000000,linewidth: 1})
+var spinrg_points = getSpringPointsArray(block.position,20,100,0.4)
 
+var spring_geometry = new THREE.BufferGeometry().setFromPoints( spinrg_points )
+var spring_mesh = new THREE.Line( spring_geometry, spring_material )
+scene.add(spring_mesh)
 
+function getSpringPointsArray (blockPosition,roundNumber,resolution,radius)
+{   
+    
+    const spring_points = []
+    spring_points.push( new THREE.Vector3( 0, 0.5, 0 ))
+    spring_points.push( new THREE.Vector3( 0, 0.5, -0.5 ) )
 
+    const end_point = blockPosition-9
+    
+    for (var i = 0;i<roundNumber*resolution;i++)
+    {   
+        
+        const polarAngle = (i%resolution/resolution)*2*Math.PI
+        const x = radius*Math.cos(polarAngle)
+        const y = radius*Math.sin(polarAngle)
+        const z = -0.5+(end_point+0.5)*(i/(roundNumber*resolution))
+        //console.log(z)
+        spring_points.push( new THREE.Vector3(x, y + 0.5, z ))
+        
+    }
+    spring_points.push( new THREE.Vector3( 0, 0.5, end_point) )
+    spring_points.push( new THREE.Vector3( 0, 0.5, end_point-0.5 ) )
+    //  
+
+    return spring_points
+}
 
 
 
@@ -409,6 +443,8 @@ const tick = () =>
             initMoveFlag = false
             line
         }
+
+
         DS['inputForce'] = getInputForce(debugObject.p,debugObject.i,debugObject.d,debugObject.mu,
             -block.position,accumulateError,-block.velocity,-block.acceleration)
             
@@ -451,6 +487,19 @@ const tick = () =>
         updateLine(points,line_geometry, pathArray[0],debugObject.position,debugObject.elapsedTime,10,colorPosition)
     }
     }
+
+    // Update String
+    if (updateSpringFlag)
+    {
+        scene.remove(spring_mesh)
+        spinrg_points = getSpringPointsArray(-block.position,20,100,0.4)
+        spring_geometry = new THREE.BufferGeometry().setFromPoints( spinrg_points )
+        spring_mesh = new THREE.Line( spring_geometry, spring_material )
+        scene.add(spring_mesh)
+        console.log(scene)
+
+    }
+    
     
 }
 
