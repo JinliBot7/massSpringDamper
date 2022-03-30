@@ -6,6 +6,9 @@ import * as CANNON from 'cannon-es'
 
 import Stats from 'stats.js'
 
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
+    
 
 /**
  * Debug
@@ -43,6 +46,10 @@ document.body.appendChild(stats.dom)
 // Scene
 const scene = new THREE.Scene()
 scene.background = new THREE.Color( 0xeeeeee)
+
+// Fonts
+
+
 
 
 
@@ -144,40 +151,89 @@ const changeMoveFlag = () =>
 }
 
 // Reference block
-const block_transparent_material = new THREE.MeshStandardMaterial( { color: block['color'] } )
+const block_transparent_material = new THREE.MeshStandardMaterial( { color: 0xFF0000 } )
 block_transparent_material.transparent = true
 block_transparent_material.opacity = 0.3
-const block_transparent_mesh = new THREE.Mesh( block_geometry, block_transparent_material )
+const reference_block_geometry = new THREE.BoxGeometry( 0.999, 0.999, 0.999 )
+const block_transparent_mesh = new THREE.Mesh( reference_block_geometry, block_transparent_material )
 block_transparent_mesh.position.y = 0.5
 block_transparent_mesh.position.z = -10
 scene.add(block_transparent_mesh)
 
-
-// Draw Line
+debugObject.targetPosition = 0
 
 const line_material = new THREE.LineBasicMaterial({color: 0x0000ff,linewidth: 1})
 const points = []
-// points.push( new THREE.Vector3( - 10, 0, 0 ) );
-// points.push( new THREE.Vector3( 0, 10, 0 ) );
-// points.push( new THREE.Vector3( 10, 0, 0 ) );
 const line_geometry = new THREE.BufferGeometry().setFromPoints( points )
 const line = new THREE.Line( line_geometry, line_material )
 scene.add( line )
 
+
+// Draw target line
+const targetLinePoints = []
+targetLinePoints.push( new THREE.Vector3( -6,5,0 ))
+targetLinePoints.push( new THREE.Vector3( -6,5,-100 ))
+const target_line_material = new THREE.LineBasicMaterial({color: 0xFF0000,linewidth: 1})
+var target_line_geometry = new THREE.BufferGeometry().setFromPoints( targetLinePoints )
+var target_line_mesh = new THREE.Line( target_line_geometry, target_line_material )
+scene.add( target_line_mesh )
+
+
+function changeTargetPosition(value)
+{
+    block_transparent_mesh.position.z = -value-10
+    scene.remove(target_line_mesh)
+    targetLinePoints.splice(0,2)
+    var lineHeight = 5+value/2
+    targetLinePoints.push( new THREE.Vector3( -6,lineHeight,0 ))
+    targetLinePoints.push( new THREE.Vector3( -6,lineHeight,-100 ))
+    target_line_geometry = new THREE.BufferGeometry().setFromPoints( targetLinePoints )
+    target_line_mesh = new THREE.Line( target_line_geometry, target_line_material )
+    scene.add( target_line_mesh )
+}
+
+
+
+// Draw Line
+
+
+
 const axis_line_material = new THREE.LineBasicMaterial({color: 0x000000})
 const x_axis_points = []
 x_axis_points.push( new THREE.Vector3( -6, 5, 0 ) )
-x_axis_points.push( new THREE.Vector3( -6, 5, -20 ) )
+x_axis_points.push( new THREE.Vector3( -6, 5, -102 ) )
 const x_axis_points_geometry = new THREE.BufferGeometry().setFromPoints( x_axis_points )
 const x_axis_line = new THREE.Line( x_axis_points_geometry, axis_line_material )
 scene.add( x_axis_line )
+//Add ticks
+const tick_poinst = []
+for (var i = 2;i<102;i+=2)
+{
+    tick_poinst.push( new THREE.Vector3(-6,5,-i))
+    tick_poinst.push( new THREE.Vector3(-6,5.2,-i))
+    const tickGeometry = new THREE.BufferGeometry().setFromPoints( tick_poinst )
+    const tickLine = new THREE.Line( tickGeometry, axis_line_material)
+    scene.add(tickLine)
+    tick_poinst.splice(0,2)
+}
+
 
 const y_axis_points = []
-y_axis_points.push( new THREE.Vector3( -6, 10, 0 ) )
-y_axis_points.push( new THREE.Vector3( -6, 0, 0 ) )
+y_axis_points.push( new THREE.Vector3( -6, 11, 0 ) )
+y_axis_points.push( new THREE.Vector3( -6, -1, 0 ) )
 const y_axis_points_geometry = new THREE.BufferGeometry().setFromPoints( y_axis_points )
 const y_axis_line = new THREE.Line( y_axis_points_geometry, axis_line_material )
 scene.add( y_axis_line )
+for (var i = 0;i<11 ;i+=1   )
+{
+    tick_poinst.push( new THREE.Vector3(-6,i,0))
+    tick_poinst.push( new THREE.Vector3(-6,i,-0.2))
+    const tickGeometry = new THREE.BufferGeometry().setFromPoints( tick_poinst )
+    const tickLine = new THREE.Line( tickGeometry, axis_line_material)
+    scene.add(tickLine)
+    tick_poinst.splice(0,2)
+}
+
 
 function updateLine(points,old_line_geometry, old_line,position,time,height,colorPosition)
 {   
@@ -219,7 +275,7 @@ function getSpringPointsArray (blockPosition,roundNumber,resolution,radius)
         const x = radius*Math.cos(polarAngle)
         const y = radius*Math.sin(polarAngle)
         const z = -0.5+(end_point+0.5)*(i/(roundNumber*resolution))
-        //console.log(z)
+
         spring_points.push( new THREE.Vector3(x, y + 0.5, z ))
         
     }
@@ -240,6 +296,8 @@ const system_folder = gui.addFolder( 'Dynamic System')
 
 
 block_folder.add(debugObject,'position').min(-9).max(9).step(0.01).onChange(changeInitialPosition).listen()
+block_folder.add(debugObject,'targetPosition').min(-9).max(9).step(0.01).onChange(changeTargetPosition).listen().name('target position')
+
 block_folder.add(debugObject,'velocity').listen().min(-10).max(10).step(0.01).disable().listen()
 block_folder.add(debugObject,'acceleration').listen().min(-10).max(10).step(0.01).disable().listen()
 block_folder.add(block,'mass').min(0.01).max(10).step(0.01)
@@ -260,15 +318,15 @@ system_folder.add(debugObject,'elapsedTime').listen().disable().name('elapsed ti
 const force_folder = system_folder.addFolder( 'Force')
 force_folder.add(DS,'externalForce').min(0).max(10).step(0.01).name('external force')
 //debugObject.forceEquation = 'Pe + I\u222Be + D\u0117 + \u03bc\u00eb'
-debugObject.forceEquation = 'Pe + I\u222Be + D\u0117'
+debugObject.forceEquation = 'Kp e + Ki \u222Be + Kd \u0117'
 force_folder.add(debugObject,'forceEquation').name('input force')
 debugObject.p = 0
 debugObject.i = 0
 debugObject.d = 0
 debugObject.mu = 0
-force_folder.add(debugObject,'p').min(0).max(10).step(0.01).name('P')
-force_folder.add(debugObject,'i').min(0).max(1).step(0.01).name('I')
-force_folder.add(debugObject,'d').min(0).max(10).step(0.01).name('D')
+force_folder.add(debugObject,'p').min(0).max(10).step(0.01).name('Kp')
+force_folder.add(debugObject,'i').min(0).max(2).step(0.01).name('Ki')
+force_folder.add(debugObject,'d').min(0).max(10).step(0.01).name('Kd')
 //force_folder.add(debugObject,'mu').min(0).max(0.9).step(0.01).name('\u03bc')
 debugObject.inputForceValue = 0
 force_folder.add(debugObject,'inputForceValue').disable().name('input force').listen()
@@ -306,19 +364,20 @@ debugObject.resetAll = () =>
     debugObject.position = 0
     debugObject.velocity = 0
     debugObject.acceleration = 0
-    debugObject.elapsedTime = 0
+    debugObject.elapsedTime = 0 
 
     points.splice(0,points.length)
     scene.remove(pathArray[0])
-    console.log(savedArray)
     for (const lines in savedArray)
     {       
-        //console.log(lines)
+
         scene.remove(savedArray[lines])
     }
     savedArray.splice(0,savedArray.length)
     block_mesh.position.z = -10
-    colorPosition = 0
+    thisColorCount = 0
+    moveFlag = false
+    initMoveFlag = true
     
 }
 
@@ -339,6 +398,47 @@ const environmentMapTexture = cubeTextureLoader.load([
     './textures/environmentMaps/0/nz.png'
 ])
 
+
+const fontLoader = new FontLoader()
+
+fontLoader.load(
+    '/fonts/helvetiker_regular.typeface.json',
+    (font) =>
+    {   
+        function addFont(textContent,x,y,z,xRotation,yRotation,zRotation,size,color)
+        {
+            const textGeometry = new TextGeometry(
+                textContent,
+                {
+                    font: font,
+                    size: size,
+                    height: 0.0,    
+                    curveSegments: 12,
+                    bevelEnabled: false,
+                    bevelThickness: 0.01,
+                    bevelSize: 0.01,
+                    bevelOffset: 0,
+                    bevelSegments: 5
+                }
+            )
+            const textMaterial = new THREE.MeshBasicMaterial({color:color})
+            textMaterial.metalness = 1
+            textMaterial.roughness = 0.2
+            const text = new THREE.Mesh(textGeometry, textMaterial)
+            text.name = 'textTitle'
+            textGeometry.center()
+            text.rotation.x = xRotation
+            text.rotation.y = yRotation
+            text.rotation.z = zRotation
+                
+            text.position.set(x,y,z)
+            scene.add(text)
+        }
+    addFont('PolyU Physics Lab',0,3.25,0.5,0,Math.PI,0,0.5,0x000000)
+    addFont('Time',-6,4,-10,0,Math.PI/2,0,0.5,0x000000)
+    addFont('Position',-6,11,-1.5,0,Math.PI/2,0,0.4,0x000000) 
+    }
+)
 
 
 /**
@@ -404,12 +504,14 @@ window.addEventListener('resize', () =>
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.set(12.439935480736665,8.240888205026199, -10.796147209941118)
+camera.position.set(11.55751788538895,6.795959736433765 , -9.266675462766802)
+
 scene.add(camera)
 
 // Controls
 const controls = new OrbitControls(camera, canvas)
-controls.target.set(-0.917419931420315,1.2614524057029373,-10.796137828106042)
+controls.target.set(-1.408398394653397,2.6876775058076157,-9.350533273702874)
+
 controls.enableDamping = true
 
 /**
@@ -444,9 +546,24 @@ const time_object = {}
 time_object.startMoveTime = 0
 const tick = () =>
 {   
+    console.log(camera.position)
+    console.log(controls.target)
 
     stats.begin()
     
+    //Test always look at camera
+    scene.traverse((child) =>
+    {   
+        if(child instanceof THREE.Mesh)
+        {   
+            if (child.name == 'text')
+            {
+                child.lookAt(camera.position)
+            }
+        }
+    })
+
+
     const elapsedTime = clock.getElapsedTime()
     
     
@@ -466,10 +583,9 @@ const tick = () =>
     var timeInterval = elapsedTime-oldElapsedTime
     oldElapsedTime = elapsedTime
 
-    var this_error = -block.position
-    accumulateError += this_error*timeInterval
-    //console.log(elapsedTime)
     
+
+
     if (moveFlag)
     {   
         updateLineFlag = true
@@ -487,15 +603,19 @@ const tick = () =>
             accumulateError = 0
         }
 
+        var this_error = debugObject.targetPosition-block.position
+        accumulateError += this_error*timeInterval
+        
 
         DS['inputForce'] = getInputForce(debugObject.p,debugObject.i,debugObject.d,debugObject.mu,
-            -block.position,accumulateError,-block.velocity,-block.acceleration)
+            this_error,accumulateError,-block.velocity,-block.acceleration)
             
         
         updateMotion (block['mass'],DS['spring'],DS['damp'],DS['inputForce'],
     block['position'],block['velocity'],timeInterval,block_mesh,DS['externalForce'])
     // Check stable
-    if (debugObject.position ==0 && debugObject.velocity == 0 & debugObject.acceleration ==0)
+    console.log(this_error)
+    if (Math.round(this_error*100)/100 ==0 && debugObject.velocity == 0 & debugObject.acceleration ==0)
     {
         stableFlag = true
     }
