@@ -434,6 +434,7 @@ fontLoader.load(
                 
             text.position.set(x,y,z)
             scene.add(text)
+            console.log(font)
         }
     addFont('PolyU Physics Lab',0,3.25,0.5,0,Math.PI,0,0.5,0x000000)
     addFont('Time',-6,4,-10,0,Math.PI/2,0,0.5,0x000000)
