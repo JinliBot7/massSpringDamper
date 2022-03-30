@@ -127,6 +127,7 @@ debugObject.acceleration = 0
 debugObject.moveFunction = () =>
 {
     moveFlag = true
+    updateSpringFlag = true
 }
 debugObject.stopFunction = () =>
 {
