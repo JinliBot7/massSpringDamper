@@ -403,7 +403,7 @@ const environmentMapTexture = cubeTextureLoader.load([
 const fontLoader = new FontLoader()
 
 fontLoader.load(
-    '/fonts/helvetiker_regular.typeface.json',
+    './fonts/helvetiker_regular.typeface.json',
     (font) =>
     {   
         function addFont(textContent,x,y,z,xRotation,yRotation,zRotation,size,color)
@@ -547,8 +547,6 @@ const time_object = {}
 time_object.startMoveTime = 0
 const tick = () =>
 {   
-    console.log(camera.position)
-    console.log(controls.target)
 
     stats.begin()
     
@@ -615,7 +613,7 @@ const tick = () =>
         updateMotion (block['mass'],DS['spring'],DS['damp'],DS['inputForce'],
     block['position'],block['velocity'],timeInterval,block_mesh,DS['externalForce'])
     // Check stable
-    console.log(this_error)
+
     if (Math.round(this_error*100)/100 ==0 && debugObject.velocity == 0 & debugObject.acceleration ==0)
     {
         stableFlag = true
